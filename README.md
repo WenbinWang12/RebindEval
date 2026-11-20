@@ -16,7 +16,7 @@ The project page is available from [`docs/index.html`](docs/index.html) and is d
 ## Repository map
 
 - [`designs_4scale/`](designs_4scale/) contains the current four-scale experiment specifications.
-- [`DESIGN_E4F.json`](DESIGN_E4F.json) records the component and spectral follow-up design.
+- Mechanism follow-up designs will be added after their public artifact audit.
 - [`analysis/`](analysis/) contains the curated public protocol summary.
 - [`hf_dataset_cards/`](hf_dataset_cards/) contains draft dataset cards for review.
 - [`docs/`](docs/) contains the public project page.

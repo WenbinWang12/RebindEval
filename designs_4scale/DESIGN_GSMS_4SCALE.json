@@ -1,0 +1,40 @@
+{
+  "id": "GSMS_4SCALE",
+  "title": "GSM-Symbolic rebinding at 300M, 520M and 1.2B",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 6: add 300M, 520M and 1.2B (existing: 130M, both sources), block setting as 130M, learning rates selected at each scale by the 130M rule, the pre-fixed feasibility threshold kept.",
+  "existing_versions": "DESIGN_GSMS.md (130M pilot, 2026-10-27); DESIGN_GSMS_1P2B.md with its addendum (1.2B: learning-rate GRID and one GRIDX round were run, MAIN was never registered). Everything not named here is the 130M protocol.",
+  "scope": {"scales_new": ["300m", "520m", "1.2b"], "sources": ["A", "M"], "optimizers": ["adamw", "muon"]},
+  "protocol_identical_to_130m": {
+    "data": "the frozen GSM-Symbolic pilot data (16 families x 256 training parents x 4 variants; probes M, G1, G2, S)",
+    "contract": "682 steps x 64; family exposures 10240/512/128/32; rotations k0-k3; order seed 20261022",
+    "training": "frozen trainer; auxiliary AdamW learning rate 3e-5; weight decay 0; gradient clipping 1.0; tf32",
+    "evaluation": "steps 20, 30, 45, 70, 100, 150, 220, 320, 460, 682; teacher-forced span and whole-target scoring; whole-target exact = greedy decoding reproduces the gold solution",
+    "phases": "GRID on rotation k0; MAIN on rotations k1-k3 at the selected learning rates; the selected GRID cell is block k0 (4 blocks)"
+  },
+  "learning_rate_selection": {
+    "grid_rule": "the 130M rule: the iGSM one-pass learning rate of the scale x {1/3, 1, 3}",
+    "grids": {
+      "300m": {"A/adamw": [1e-4, 3e-4, 1e-3], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [3e-6, 1e-5, 3e-5], "M/muon": [3e-5, 1e-4, 3e-4]},
+      "520m": {"A/adamw": [1e-5, 3e-5, 1e-4], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [3e-6, 1e-5, 3e-5], "M/muon": [1e-4, 3e-4, 1e-3]},
+      "1.2b": {"A/adamw": [1e-5, 3e-5, 1e-4], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [3e-6, 1e-5, 3e-5], "M/muon": [3e-5, 1e-4, 3e-4]}
+    },
+    "score": "mean over levels of final S whole-target exact (held-out selection maps, disjoint from the G2 report maps); ties go to the lower learning rate",
+    "edge_rule": "an optimum at a grid edge adds one more point beyond it (GRIDX). The existing rule names one round; here the round is repeated while the optimum stays at an edge, at most three rounds in total. If it is still at an edge after three rounds, MAIN is not registered for that scale and the case is reported.",
+    "state_at_1.2b": "GRID and one GRIDX round exist on host class a100 (2026-10-30). Selected so far: A/muon 3e-4, M/adamw 1e-5, M/muon 1e-4 (interior). A/adamw has its optimum at the lower edge (3e-6, after the extension from 1e-5); the next point is 1e-6. Those cells are reused; the scores seen when this file was written are the S scores in the existing LR_DECISION.json of that study.",
+    "no_screen": "The 1.2B design added a k0 screen (G1 at least 15% before MAIN) only to save GPU time. It is not part of the 130M protocol and is not applied here: MAIN runs for both sources at every scale."
+  },
+  "feasibility_gate_unchanged": "Per source, both optimizers must reach G1 whole-target exact >= 30% at the most frequent level (mean over blocks). Otherwise G2 and the interaction are not interpreted for that source at that scale.",
+  "primary_quantities": {
+    "statistic": "final step; Delta = logit(Muon) - logit(AdamW) of whole-target exact (+0.5, items pooled per block, mean over blocks); 95% interval from a two-way bootstrap (families x blocks, 2000 draws, seed 20261027)",
+    "quantities": ["Delta_G2 and Delta_G1 at the most frequent level and over all levels", "the optimizer x probe interaction Delta_G2 - Delta_G1"],
+    "reading": "per source, only if feasible: rebinding gap replicates if Delta_G2 - Delta_G1 < 0 with the interval excluding 0; no gap if the interval lies inside (-0.29, +0.29); otherwise inconclusive"
+  },
+  "cells": {"300m": {"GRID": 12, "MAIN": 12}, "520m": {"GRID": 12, "MAIN": 12}, "1.2b": {"GRIDX_further": "1 per round", "MAIN": 12}},
+  "outputs": {
+    "result_file": "GSMS_RESULTS.json with the existing structure (boot with estimates and intervals, feasibility_G1_L0, feasible, rates, span_rates); keys prefixed with the scale",
+    "package": "MuonPaperData_<date>_GSMS_<scale>.zip: result JSON, per-checkpoint tables, training curves, learning-rate selection records, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "license": "GSM-Symbolic is CC-BY-NC-ND-4.0. Internal research use only: no data and no model derived from it is released. The models of this experiment are therefore not uploaded anywhere; the dW spectra are computed locally before the weights are deleted.",
+  "execution": {"host_class": "a100", "microbatch": 16, "gpu_rule": "idle GPUs only"}
+}

@@ -1,0 +1,38 @@
+{
+  "id": "E3B_4SCALE",
+  "title": "Prefix rescue (gold first entity-value binding) on iGSM at 300M, 520M and 1.2B",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 2: evaluate the prefix rescue on the iGSM main-experiment checkpoints of 300M, 520M and 1.2B (both sources, 4 blocks, 682 steps), evaluation only.",
+  "existing_version": "E3b (130M, the original E1 runs, 12 blocks): e3_rescue.py and e3_rescue_summary.py; results E3B_SUMMARY.json.",
+  "deviation_from_the_request": {
+    "fact": "The final checkpoints of the iGSM main-experiment runs at 300M, 520M and 1.2B no longer exist on any server (they were deleted after scoring).",
+    "user_decision": "2026-11-21: do not rerun the same blocks; run a different seed, whose base results can then be averaged with the earlier blocks.",
+    "consequence": "The prefix evaluation is run on new training runs of order seed 20261023 (rotations k0 and k2), 2 blocks per scale and source instead of the 4 blocks named in the request. The larger scales then have the same six blocks as iGSM 130M (order seeds 20261021, 20261022, 20261023 x rotations k0, k2), and the base (no-prefix) results of the new blocks pool with the existing four."
+  },
+  "new_training_runs": {
+    "protocol": "the iGSM main experiment of each scale unchanged: 682 steps, the selected learning rates, tf32, same data, probes and evaluation steps",
+    "blocks": ["k0-o23", "k2-o23"],
+    "cells_per_scale": 8,
+    "learning_rates": {
+      "300m": {"A": {"adamw": 3e-4, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}},
+      "520m": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 3e-4}},
+      "1.2b": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}}
+    },
+    "total_new_cells": 24
+  },
+  "evaluation_identical_to_130m": {
+    "procedure": "for each complete cell, load its final full checkpoint, append the gold solution's first sentence ('Define <entity> as a; so a = ...') to every probe prompt, generate the rest greedily with the evaluation settings (batch 64, 768-token budget including the prefix, Answer-line stop), and score prefix + continuation with the official validator; paired with the cell's saved final-step outputs",
+    "probes": "M, G1, G2, every level",
+    "counts": "rescued (base wrong, with prefix right) and broken (base right, with prefix wrong)"
+  },
+  "primary_quantities": {
+    "per": "scale, source and optimizer, at every level",
+    "values": ["base accuracy", "accuracy with the prefix", "gap to G1 closed by the prefix (share)", "Muon's extra gain: (prefix - base) of Muon minus (prefix - base) of AdamW"],
+    "interval": "two-way cluster bootstrap over families and blocks, as e3_rescue_summary.py; with two blocks the block dimension is narrow and the interval is reported with the number of blocks"
+  },
+  "outputs": {
+    "result_file": "E3B_SUMMARY.json with the existing structure; keys prefixed with the scale, e.g. '<scale>/A/G2/0'",
+    "package": "MuonPaperData_<date>_E3B_<scale>.zip: result JSON, per-item outputs, per-checkpoint tables and training curves of the new runs, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"host_class": "a100", "gpu_rule": "idle GPUs only", "weights": "final checkpoints are kept until the prefix evaluation, the dW spectra and the export of block k0-o23 are done"}
+}

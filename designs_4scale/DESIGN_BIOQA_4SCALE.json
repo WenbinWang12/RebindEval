@@ -1,0 +1,37 @@
+{
+  "id": "BIOQA_4SCALE",
+  "title": "BioQA-tail calibration at 300M, 520M and 1.2B",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 4: first report the model scale of the existing runs, then run the remaining scales: three initialisations (from scratch, AdamW source, Muon source), three learning rates per initialisation and optimizer about 3x apart, 10,000 steps of 128 sequences, evaluation at 500 / 1,000 / 2,000 / 5,000 / 10,000 steps, selection rule unchanged.",
+  "existing_version": {
+    "design": "DESIGN_BIOQA.md with its addendum of 2026-10-27; results BQ_RESULTS.json (18 runs)",
+    "model_scale_of_the_existing_runs": "130M. Read from the run configuration: the queue passes the 130M source manifest to every run, the fine-tuned runs load adamw_130m_4 / muon_130m_4, and the from-scratch runs are randomly initialised from the configuration of adamw_130m_4."
+  },
+  "scope": {"scales_new": ["300m", "520m", "1.2b"], "initialisations": ["scratch", "A", "M"], "optimizers": ["adamw", "muon"], "runs_per_scale": 18, "runs_total": 54},
+  "protocol_identical_to_130m": {
+    "data": "the frozen BioQA-tail data (m = 12: 4096 persons in groups g = 0..12, six QA pairs per person, 172,032 QA occurrences per epoch)",
+    "training": "10,000 steps, batch 128, warmup 200, cosine decay to 0.1 of the peak, gradient clipping 1.0, weight decay 0, tf32, loss on the answer tokens and EOS; hidden matrices by Muon or AdamW at the peak learning rate, embeddings, norms and head by AdamW at the auxiliary learning rate (scratch 1e-3, fine-tuning 3e-5), identical for both optimizers; seed 20261027",
+    "evaluation": "steps 500, 1000, 2000, 5000, 10000 on up to 128 persons per group x 6 attributes: first-token accuracy (FTA) and exact value accuracy per frequency group",
+    "from_scratch_model": "random initialisation from the configuration of adamw_<scale>_4 (the architecture of that scale)"
+  },
+  "learning_rates": {
+    "rule": "three values 3x apart per initialisation and optimizer. Fine-tuned runs: centred on the VarTrace main-experiment learning rate of that scale, source and optimizer (the centre of the 130M grids was the 130M VarTrace value). From scratch: the 130M grid at every scale (no pretraining reference exists; if the best value is at an end of the grid this is reported, the grid is not extended).",
+    "grids": {
+      "scratch": {"adamw": [3e-4, 1e-3, 3e-3], "muon": [3e-3, 1e-2, 3e-2]},
+      "300m": {"A": {"adamw": [3e-5, 1e-4, 3e-4], "muon": [3e-4, 1e-3, 3e-3]}, "M": {"adamw": [3e-6, 1e-5, 3e-5], "muon": [1e-4, 3e-4, 1e-3]}},
+      "520m": {"A": {"adamw": [1e-5, 3e-5, 1e-4], "muon": [3e-4, 1e-3, 3e-3]}, "M": {"adamw": [1e-6, 3e-6, 1e-5], "muon": [3e-5, 1e-4, 3e-4]}},
+      "1.2b": {"A": {"adamw": [1e-5, 3e-5, 1e-4], "muon": [1e-4, 3e-4, 1e-3]}, "M": {"adamw": [1e-6, 3e-6, 1e-5], "muon": [3e-5, 1e-4, 3e-4]}}
+    }
+  },
+  "selection_and_reading_unchanged": {
+    "selection": "per initialisation and optimizer, the learning rate with the highest mean-over-groups FTA at 10,000 steps; if several are within 0.5 points of the best, the one with the highest log-step AUC of mean-over-groups FTA; if still tied, the smaller learning rate. All learning rates are reported.",
+    "primary": "at the selected learning rates, per initialisation: Muon's FTA on the three rarest groups minus AdamW's. Replicates the tail advantage if >= 10 points; no tail advantage if within +-3 points; otherwise in between.",
+    "secondary": "S1 tail-3 mean FTA difference at 2,000 and 5,000 steps; S2 log-step AUC of tail-3 mean FTA over the five evaluation points; S3 first evaluation step with tail-3 mean FTA >= 0.9. Same thresholds as the primary reading.",
+    "intervals": "normal approximation with 128 persons per group as the sample size, unpaired, as in the 130M addendum"
+  },
+  "outputs": {
+    "result_file": "BQ_RESULTS.json with the existing structure (runs, selected, comparisons), one per scale, with the scale stated in the file and in the keys ('<scale>/A/adamw', ...)",
+    "package": "MuonPaperData_<date>_BIOQA_<scale>.zip: result JSON, per-run results at every evaluation step, training logs, learning rates, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"host_class": "a100", "gpu_rule": "idle GPUs only, one run per GPU", "weights": "the trainer writes no model files; nothing to keep or delete"}
+}

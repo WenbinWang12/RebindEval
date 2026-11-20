@@ -1,0 +1,51 @@
+{
+  "id": "ROLEWISE_4SCALE",
+  "title": "Role-wise iGSM: held-out role-name pairs versus trained role-name pairs, four scales and both sources",
+  "status": "registered before any run and before the data are compiled; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 7 (not run before): every family keeps a set of role-name pairs out of the training assignments; every held-out parent is tested under an assignment that uses only trained pairs and under one that uses only held-out pairs, with the same models. Blocks as the iGSM main experiment (130M 6/12, the others 4).",
+  "definitions": {
+    "role_name_pair": "In an iGSM family the entity names are grouped in layers; a name assignment is one permutation per layer that puts the names of the layer into its slots (roles). A role-name pair is (layer, slot, name).",
+    "background": "In the main iGSM data (arm SC, wide coverage) the training assignments cover almost every role-name pair of a family (between 75% and 100%), and the held-out assignments of G2 are new joint assignments made mostly of trained pairs. The main G2 therefore does not separate 'new joint assignment' from 'new role-name pair'."
+  },
+  "data_design": {
+    "held_out_pairs": "Per family, one permutation h_l is fixed in every layer by a hash of (family, layer, salt 'rolewise-v1'), without reference to any model result. H = all pairs of these permutations. No training assignment contains a pair of H.",
+    "training_assignments": "Assignments whose every layer permutation shares no pair with h_l. Per layer there are 1 such permutation for 2 names, 2 for 3 names and 9 for 4 names. Up to 8 training assignments per family are drawn (hash-balanced) so that, where the family allows it, every pair outside H occurs in training and at least one admissible assignment is left out of training.",
+    "test_assignments": {
+      "G2_trained_pairs": "one admissible assignment that is not a training assignment and whose every pair occurs in some training assignment (a new joint assignment of trained pairs)",
+      "G2_heldout_pairs": "the assignment (h_1, ..., h_L): every pair is in H, so no name is in a role it had in training; every name still occurs in training"
+    },
+    "everything_else": "Templates, parents, numbers, premise orders, frequency levels (10240/512/128/32), schedules, rotations and order seeds, the within-parent design (four variants per training parent), the probe parents of M and G1, and the selection panel construction are those of the main iGSM data. G1 = held-out parents on a training assignment. Both G2 panels use the G1 parents and premise order."
+  },
+  "families_that_cannot_support_the_full_contrast": {
+    "fact": "Six of the 16 families have too few assignments: the five families whose layers all have 2 names (layer sizes [2,2], [2,2,2], [2,2,2,2]) have exactly one admissible assignment, and the family with layer sizes [2,3] has two admissible assignments that share no pair.",
+    "handling": "In these families training uses every admissible assignment and G2_trained_pairs is tested on a training assignment (it then equals a seen surface). G2_heldout_pairs is defined as everywhere. Every quantity is reported twice: over all 16 families, and over the 10 families that have a new joint assignment of trained pairs. The second is the primary reading of the contrast.",
+    "open_point_for_the_user": "This is the design choice with the largest effect on the result. Alternatives: (a) exclude the six families from training as well; (b) hold out pairs only in layers with at least 3 names. The choice is fixed here before any data are compiled; a change would be a new registration."
+  },
+  "training": {
+    "scales": ["130m", "300m", "520m", "1.2b"], "sources": ["A", "M"], "optimizers": ["adamw", "muon"],
+    "protocol": "the iGSM main experiment of each scale: 682 steps x 64, evaluation steps 20, 30, 45, 70, 100, 150, 220, 320, 460, 682, greedy decoding with the official full-solution check, M gold NLL at every step; 130m fp32, the other scales tf32",
+    "learning_rates": {
+      "rule": "the iGSM one-pass learning rates of each scale and source, not re-selected",
+      "values": {
+        "130m": {"A": {"adamw": 1e-4, "muon": 1e-3}, "M": {"adamw": 3e-5, "muon": 3e-4}, "note": "the learning rates of the 130M E1 main blocks"},
+        "300m": {"A": {"adamw": 3e-4, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}},
+        "520m": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 3e-4}},
+        "1.2b": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}}
+      }
+    },
+    "blocks": {"130m": "6 blocks: rotations k0, k2 x order seeds 20261021, 20261022, 20261023", "300m, 520m, 1.2b": "4 blocks: rotations k0, k2 x order seeds 20261021, 20261022"},
+    "cells": {"130m": 24, "300m": 16, "520m": 16, "1.2b": 16, "total": 72}
+  },
+  "primary_quantities": {
+    "per": "scale, source and optimizer; most frequent level (primary), every level and all levels merged",
+    "values": ["G1", "G2_trained_pairs", "G2_heldout_pairs"],
+    "contrast": "D = G2_trained_pairs - G2_heldout_pairs per optimizer; the optimizer difference D(Muon) - D(AdamW)",
+    "interval": "95% two-way cluster bootstrap (families and blocks resampled independently, 2000 draws, seed 20261121), as the iGSM component analysis",
+    "predictions": "If Muon ties the computation to the role-name pairs seen in training, D(Muon) - D(AdamW) > 0 with G2_trained_pairs close to G1 for both optimizers. If the main G2 gap comes from new joint assignments, both G2 panels fall below G1 for Muon and D(Muon) - D(AdamW) is near 0."
+  },
+  "outputs": {
+    "result_file": "ROLEWISE_RESULTS.json: keys '<scale>/<source>/<optimizer>' with G1, G2_trained_pairs, G2_heldout_pairs per block and level; the contrast and the optimizer difference with intervals, over all families and over the families with a new joint assignment",
+    "package": "MuonPaperData_<date>_ROLEWISE_<scale>.zip: result JSON, per-checkpoint tables, training curves, learning rates used, the data audit, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"steps_before_any_run": ["compile the role-wise data with the iGSM surface compiler extended by the hold-out rule", "audit: no training row contains a pair of H; G2_trained_pairs rows contain only trained pairs and are no training assignment where the family allows it; G2_heldout_pairs rows contain only pairs of H; every gold solution passes the official check"], "host_classes": "130m: h200 / h100; 300m, 520m, 1.2b: a100", "gpu_rule": "idle GPUs only"}
+}

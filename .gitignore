@@ -1,0 +1,64 @@
+# Local session and editor state
+.claude/
+.vscode/
+.idea/
+
+# Credentials and runtime state
+.env
+.env.*
+*.pem
+*.key
+*.secret
+*.credentials
+**/.wandb_api_key
+**/credentials*
+
+# Large datasets, checkpoints, archives, and generated run trees
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.ckpt
+*.zip
+*.tgz
+*.tar
+*.tar.gz
+*.jsonl
+*.csv
+*.tsv
+*.parquet
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.sqlite
+*.db
+*.log
+*.out
+*.err
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+tmp_*/
+_appendix_work/
+_mech_stage/
+_vt_stage/
+reports/
+MuonPaperData_*/
+RR_MECH_ANALYSES_*/
+*_remote.json
+reasoning/a800_*/
+reasoning/*/runs/
+
+# Python and JavaScript caches
+__pycache__/
+*.py[cod]
+node_modules/
+.npm/
+
+# Keep the GitHub Pages source visible
+!docs/
+!docs/**

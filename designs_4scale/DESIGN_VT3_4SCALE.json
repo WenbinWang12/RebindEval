@@ -1,0 +1,41 @@
+{
+  "id": "VT3_4SCALE",
+  "title": "VarTrace coverage variant (stable / permuted x covered / uncovered) at four scales and both sources",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 5: existing VT3 is VarTrace 130M, Muon source only, three data worlds. Add the 130M AdamW source, and both sources at 300M, 520M and 1.2B.",
+  "existing_version": "DESIGN.md of the v3 coverage study (2026-10-26); results VT3_RESULTS.json. Everything not named under 'what_changes' is that protocol.",
+  "scope": {
+    "cells_new": {"130m": ["A"], "300m": ["A", "M"], "520m": ["A", "M"], "1.2b": ["A", "M"]},
+    "per_scale_and_source": "2 optimizers x 4 regimes (anchor_cov, perm_cov, anchor_unc, perm_unc; anchor = stable names, perm = permuted names, cov / unc = G2 slot-name pairs covered / not covered in training) x 3 worlds = 24 runs",
+    "runs_total": 168
+  },
+  "protocol_identical_to_130m_M_source": {
+    "data": "the frozen v3 data (three worlds x four regimes); they do not depend on the model",
+    "blocks": "world w uses schedule rotation w, order seed 20261022 (three worlds = three blocks)",
+    "training": "682 steps x 64, frozen trainer, auxiliary AdamW learning rate 3e-5, weight decay 0, gradient clipping 1.0, tf32",
+    "evaluation": "steps 20, 30, 45, 70, 100, 150, 220, 320, 460, 682; probes M, G1, G2, SW, CF at every step, S at the final step; valid-derivation scoring",
+    "launch_order": "the cov block (worlds 0-2) before the unc block"
+  },
+  "what_changes": {"base_models": "adamw_<scale>_4 / muon_<scale>_4 of each new cell"},
+  "learning_rates": {
+    "rule": "the VarTrace main-experiment learning rates of that scale and source, not re-selected (the 130M rule)",
+    "values": {
+      "130m": {"A": {"adamw": 1e-4, "muon": 1e-3}, "M": {"adamw": 3e-5, "muon": 3e-4, "note": "existing runs"}},
+      "300m": {"A": {"adamw": 1e-4, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 3e-4}},
+      "520m": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 3e-6, "muon": 1e-4}},
+      "1.2b": {"A": {"adamw": 3e-5, "muon": 3e-4}, "M": {"adamw": 3e-6, "muon": 1e-4}}
+    }
+  },
+  "primary_quantities": {
+    "outcome": "G2 valid-derivation accuracy at the final step",
+    "scale_of_analysis": "per world, G2 items pooled over the 16 families; Delta_r,w = logit(Muon) - logit(AdamW) with +0.5; Delta_r = mean over worlds; the percentage-point family-macro difference is reported alongside (G2_pp_final_valid)",
+    "contrasts": {"I_P": "1/2 [(Delta_anchor_cov - Delta_perm_cov) + (Delta_anchor_unc - Delta_perm_unc)]", "I_C": "1/2 [(Delta_anchor_unc - Delta_anchor_cov) + (Delta_perm_unc - Delta_perm_cov)]", "PxC": "the interaction of the two"},
+    "intervals": "2000 draws (seed 20261026) resampling families within each world, the same draw for all regimes and both optimizers; and the hierarchical bootstrap (worlds, then families) reported as ci95_hier",
+    "reading": "predictability effect if I_P < 0, the interval excludes 0 and I_P < 0 in each world; no predictability effect if the interval of I_P lies inside (-0.29, +0.29); otherwise inconclusive. AUC over log-step and G2 at matched M gold NLL (0.01) are reported and read separately."
+  },
+  "outputs": {
+    "result_file": "VT3_RESULTS.json with the existing structure (G2_pp_final_valid and the other blocks with ci95_hier; I_P, I_C, PxC; log-odds versions and the equivalence-interval reading); keys prefixed with '<scale>/<source>'",
+    "package": "MuonPaperData_<date>_VT3_<scale>.zip: result JSON, per-checkpoint tables, training curves, learning rates used, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"host_classes": "130m A source: h200 / h100 (as the existing 130M runs); 300m, 520m, 1.2b: a100. A pair of AdamW and Muon cells always runs on one host class.", "gpu_rule": "idle GPUs only", "weights": "final-step weights are kept until the dW spectra are computed and world 0 is exported"}
+}

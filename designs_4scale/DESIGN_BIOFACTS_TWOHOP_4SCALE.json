@@ -1,0 +1,48 @@
+{
+  "id": "BIOFACTS_TWOHOP_4SCALE",
+  "title": "BioFacts and TwoHop at 300M and 520M",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 3: add 300M and 520M (existing: 130M and 1.2B), both sources, 4 blocks, learning rates selected independently by the existing rule.",
+  "existing_versions": "DESIGN_BIOFACTS.md, DESIGN_TWOHOP.md (130M, 2026-10-27); DESIGN_BFTH_1P2B.md (1.2B, 2026-10-30). Everything not named here is those protocols.",
+  "scope": {"tasks": ["biofacts", "twohop"], "scales_new": ["300m", "520m"], "sources": ["A", "M"], "optimizers": ["adamw", "muon"]},
+  "protocol_identical": {
+    "data": "the frozen BioFacts and TwoHop data (same files as 130M and 1.2B)",
+    "contract": "682 steps x 64; family exposures 10240/512/128/32; rotations k0-k3; order seed 20261022",
+    "training": "frozen trainer; auxiliary AdamW learning rate 3e-5; weight decay 0; gradient clipping 1.0; tf32 (as 130M and 1.2B)",
+    "evaluation": "teacher-forced, evaluation steps 20, 30, 45, 70, 100, 150, 220, 320, 460, 682; BioFacts probes M, R, Q, U; TwoHop probes M, H1, H2, C, X",
+    "phases": "GRID on rotation k0; MAIN on rotations k1-k3 at the selected learning rates; the selected GRID cell is block k0 (4 blocks)"
+  },
+  "learning_rate_selection": {
+    "grid_rule": "the 1.2B rule: per case, the 130M selected learning rate x (iGSM one-pass learning rate of the scale / iGSM E1-setting learning rate of 130M) x {1/3, 1, 3}, on the 1-3 ladder",
+    "inputs": {
+      "selected_130m": {"biofacts": {"A/adamw": 3e-4, "A/muon": 3e-3, "M/adamw": 1e-4, "M/muon": 1e-3}, "twohop": {"A/adamw": 1e-3, "A/muon": 3e-3, "M/adamw": 1e-4, "M/muon": 1e-3}},
+      "igsm_130m_e1_setting": {"A/adamw": 3e-4, "A/muon": 3e-3, "M/adamw": 3e-5, "M/muon": 3e-4},
+      "igsm_300m": {"A/adamw": 3e-4, "A/muon": 1e-3, "M/adamw": 1e-5, "M/muon": 1e-4},
+      "igsm_520m": {"A/adamw": 3e-5, "A/muon": 1e-3, "M/adamw": 1e-5, "M/muon": 3e-4}
+    },
+    "grids": {
+      "biofacts": {
+        "300m": {"A/adamw": [1e-4, 3e-4, 1e-3], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [1e-5, 3e-5, 1e-4], "M/muon": [1e-4, 3e-4, 1e-3]},
+        "520m": {"A/adamw": [1e-5, 3e-5, 1e-4], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [1e-5, 3e-5, 1e-4], "M/muon": [3e-4, 1e-3, 3e-3]}
+      },
+      "twohop": {
+        "300m": {"A/adamw": [3e-4, 1e-3, 3e-3], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [1e-5, 3e-5, 1e-4], "M/muon": [1e-4, 3e-4, 1e-3]},
+        "520m": {"A/adamw": [3e-5, 1e-4, 3e-4], "A/muon": [3e-4, 1e-3, 3e-3], "M/adamw": [1e-5, 3e-5, 1e-4], "M/muon": [3e-4, 1e-3, 3e-3]}
+      }
+    },
+    "score": "BioFacts: mean over levels of final M exact recall. TwoHop: mean over levels of final C whole-answer exact. Ties go to the lower learning rate.",
+    "edge_rule": "an optimum at a grid edge adds one more point beyond it (GRIDX). The existing rule names one round; here the round is repeated while the optimum stays at an edge, at most three rounds. If it is still at an edge after three rounds, MAIN is not registered for that task and scale and the case is reported.",
+    "records": "all grid scores and decisions are written to LR_DECISION.json and included in the package"
+  },
+  "primary_quantities": {
+    "statistic": "final step; Delta = logit(Muon) - logit(AdamW) with +0.5, items pooled per block and level, mean over blocks; 95% interval from a two-way bootstrap (families x blocks, 2000 draws, seed 20261027); reported with and without block k0",
+    "biofacts": "Delta_tail = mean of Delta at person exposure 4 and 1 (levels 2, 3). Reading per source: tail-memory advantage if Delta_tail > 0 and the interval excludes 0; no tail advantage if the interval lies inside (-0.29, +0.29); otherwise inconclusive.",
+    "twohop": "memory: Delta_H1, Delta_H2 (trained hop-2 facts); reasoning: Delta_C (composable items) and Delta_X (stored items), whole-answer exact. Reading per source: dissociation if both memory intervals have lower bound > -0.29 and Delta_C or Delta_X < 0 with the interval excluding 0; no difference if all four intervals lie inside (-0.29, +0.29); otherwise inconclusive."
+  },
+  "cells": {"per_task_and_scale": {"smoke": 2, "GRID": 12, "GRIDX": "0-4 per round", "MAIN": 12}, "note": "GRID = 3 learning rates x 2 sources x 2 optimizers; MAIN = 3 rotations x 2 sources x 2 optimizers", "total_without_extensions": 96},
+  "outputs": {
+    "result_files": "BIOFACTS_RESULTS.json and TWOHOP_RESULTS.json with the existing structure (including D_tail, the probe log-odds differences and their two-way cluster bootstrap intervals); keys prefixed with the scale",
+    "package": "MuonPaperData_<date>_BIOFACTS_<scale>.zip and MuonPaperData_<date>_TWOHOP_<scale>.zip: result JSON, per-checkpoint tables, training curves, learning-rate selection records, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"host_class": "a100", "microbatch": 16, "gpu_rule": "idle GPUs only", "weights": "final-step weights are kept until the dW spectra are computed and block k1 is exported"}
+}

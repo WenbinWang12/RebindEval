@@ -1,0 +1,55 @@
+{
+  "id": "E1X4_4SCALE",
+  "title": "iGSM multi-pass training (1x, 2x, 4x) at 300M, 520M and 1.2B",
+  "status": "registered before any run of this extension; see REGISTRATION_4SCALE.json for the timestamp and SHA256",
+  "request": "User task list of 2026-11-21, item 1: extend E1X4 (existing: 130M, both sources, 2 blocks) to 300M, 520M, 1.2B.",
+  "existing_version": "DESIGN_E1X4.md (2026-10-27), results E1X4_RESULTS.json (130M). Everything not named under 'what_changes' is that protocol.",
+  "scope": {
+    "scales_new": ["300m", "520m", "1.2b"],
+    "sources": ["A", "M"],
+    "blocks": "rotations k0 and k2 of order seed 20261022 (the 130M block definition)",
+    "arms_and_budgets": {
+      "adamw, muon": ["1x (682 steps)", "2x (1,364 steps)", "4x (2,728 steps)"],
+      "spectral_p05, spectral_p1": ["1x (682 steps)", "4x (2,728 steps)"]
+    }
+  },
+  "protocol_identical_to_130m": {
+    "data": "2x = the E1 schedules k0/k2 of order seed 20261022 traversed twice (contract RR-surface-v4-E1long); 4x = traversed four times (contract RR-surface-v4-E1x4). Pass 1 equals E1; train, dev and probe files are the E1 files; every family sees 2x / 4x its E1 exposures with the same parents.",
+    "schedule": "48 warmup steps, cosine decay to 0.1 of the peak over the full horizon; every run starts from the pretrained base model, never from a shorter run.",
+    "evaluation_steps": {"2x": [20, 30, 45, 70, 100, 150, 220, 320, 460, 682, 1000, 1364], "4x": [20, 30, 45, 70, 100, 150, 220, 320, 460, 682, 1000, 1364, 2000, 2728]},
+    "probes_and_scoring": "M, G1, G2 at every level; greedy decoding, official full-solution check; M gold NLL at every evaluation step.",
+    "learning_rates_not_retuned_for_longer_budgets": true
+  },
+  "what_changes": {
+    "base_models": "adamw_<scale>_4 and muon_<scale>_4",
+    "matmul_precision": "tf32 (as the iGSM main experiment at these scales; 130M used fp32)",
+    "trainer": "the scale-study trainer with the E1long / E1x4 data contract"
+  },
+  "learning_rates": {
+    "rule": "The learning rate selected for one-pass training at that scale and source (the 130M rule: the 682-step selected values, not retuned).",
+    "adamw_muon": {
+      "300m": {"A": {"adamw": 3e-4, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}},
+      "520m": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 3e-4}},
+      "1.2b": {"A": {"adamw": 3e-5, "muon": 1e-3}, "M": {"adamw": 1e-5, "muon": 1e-4}}
+    },
+    "spectral": "the learning rates selected in E4F for spectral_p05 and spectral_p1 at that scale and source (E4F_SPECTRAL_LR_DECISION.json). Spectral cells are registered only after that decision exists; AdamW and Muon cells run first."
+  },
+  "cells": {
+    "reused_not_rerun": "1x adamw and muon: the main-experiment cells of the same blocks (k0-o22: the selected learning-rate grid cell; k2-o22: the E1 cell). 1x spectral: the E4F spectral cells of the same blocks.",
+    "new_per_scale": {"adamw_muon_2x": 8, "adamw_muon_4x": 8, "spectral_4x": 8},
+    "new_total": 72,
+    "order": "per scale: adamw/muon 2x, adamw/muon 4x, then spectral 4x once the E4F decision exists"
+  },
+  "primary_quantities": {
+    "level": "most frequent level; G2 at the final step of each budget, mean over k0 and k2, paired by family and rotation",
+    "interval": "95% family-cluster bootstrap, 2000 draws, as in E1X4",
+    "per_scale_and_source": ["muon - adamw at x1, x2, x4", "spectral_p1 - muon at x4 (and x1)", "spectral_p05 - muon at x4 (and x1)"],
+    "stability": "an arm is stable if |G2(2728) - G2(2000)| <= 5 pp; a comparison with an unstable arm is labelled 'still moving'",
+    "readings": "as DESIGN_E1X4.md: gap persists at 4x if the interval of muon - adamw excludes 0 below; closed if it includes 0 and |difference| <= 5 pp; otherwise inconclusive. Spectral: advantage persists if the interval of p1 - muon excludes 0 above in both sources."
+  },
+  "outputs": {
+    "result_file": "E1X4_RESULTS.json with the existing structure (primary, levels, stability); keys prefixed with the scale, e.g. '<scale>/A/muon-adamw'",
+    "package": "MuonPaperData_<date>_E1X4_<scale>.zip: result JSON, per-checkpoint tables, training curves, learning rates used, analysis scripts, this file, SHA256 list. No user, institution or host name in paths or contents."
+  },
+  "execution": {"host_class": "a100 for 300m, 520m and 1.2b (recorded in each campaign)", "gpu_rule": "idle GPUs only", "weights": "final-step weights are kept until the dW spectra are computed and one block (k0-o22) is exported"}
+}

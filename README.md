@@ -13,6 +13,8 @@ The project is organized around four ideas.
 
 The project page is available from [`docs/index.html`](docs/index.html) and is designed for GitHub Pages.
 
+Live project page: <https://wenbinwang12.github.io/RebindEval/>
+
 ## Repository map
 
 - [`designs_4scale/`](designs_4scale/) contains the current four-scale experiment specifications.
